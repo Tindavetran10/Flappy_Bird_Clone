@@ -12,9 +12,8 @@ using UnityEngine;
 
 public class HideGameObject : MonoBehaviour
 {
-
-    void HideObj()
+    private void HideObj()
     {
-        this.gameObject.SetActive(false);
+        gameObject.SetActive(false);
     }
 }

@@ -1,66 +1,87 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// this script is used to control our player
-/// and manage his collisions
-/// at the start of the scrit we get player's rigidbody2D component
-/// in the Jump method we get the input and push up the player
-/// adding a force to his rb
-/// 
-/// we also check the collisions with the walls and triggers with the scores
-/// if the player hit the wall its gameover
-/// else if the player trigger the score we will increase the value score in gm(Game Manager)
-/// </summary>
-
-
 public class Player : MonoBehaviour
 {
-    public Rigidbody2D rb;
+    //public Rigidbody2D rb;
 
     [SerializeField] public GameManager gm;
-    //[SerializeField] AudioSource dieAudio, pointAudio, flyAudio;
+    [SerializeField] public AudioSource dieAudio, pointAudio, flyAudio;
 
-    [SerializeField] public float force;
-    bool _alive = true;
+    public float force;
+    public float jumpForce = 5f;
+    public float gravity = -9.8f;
 
+    private const bool Alive = true;
 
-    // Start is called before the first frame update
-    private void Start() => rb = GetComponent<Rigidbody2D>();
+    [Header("Player's bounds")]
+    public float width = 0.5f;
+    public float height = 0.5f;
 
+    [SerializeField] private float detectionGap = 0.1f;
+    [SerializeField] private float detectionXOffset = 0.0f;
+    [SerializeField] private float topDetectionHeight = 0.5f; // Height of the top detection rect
+    [SerializeField] private float bottomDetectionHeight = 0.5f; // Height of the bottom detection rect
+
+    
     // Update is called once per frame
-    private void Update() => Jump();
-
-    public void Jump()
+    private void Update()
     {
-
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
+        if (gm.isStarted && Alive)
         {
-
-            //flyAudio.Play();
-            rb.velocity = new Vector2(rb.velocity.x, 1 * force);
+            // Calculate gravity
+            force += gravity * Time.deltaTime;
+            
+            // Apply gravity to the player
+            transform.position += new Vector3(0, force * Time.deltaTime, 0);
         }
-
-    }
-
-    public void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.gameObject.tag == "Score" && _alive)
+        
+        var aiController = GetComponent<AIController>();
+        if (!gm.isGameOver && (aiController == null || !aiController.enabled))
         {
-            //pointAudio.Play();
-            collision.gameObject.GetComponent<BoxCollider2D>().enabled = false;
-            gm.score += 1;
-
+            Jump();
         }
     }
 
-    public void OnCollisionEnter2D(Collision2D collision)
+    private void Jump()
     {
-        if (collision.gameObject.tag == "Wall" && _alive)
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Mathf.Approximately(force, jumpForce))
         {
-            _alive = false;
-            //dieAudio.Play();
-            gm.isGameOver = true;
-            enabled = false;
+            flyAudio.Play();
+            force = jumpForce;
         }
+    }
+    
+
+    public Rect GetBounds()
+    {
+        var position = transform.position;
+        Vector2 size = GetComponent<SpriteRenderer>().bounds.size;
+        return new Rect(position.x - size.x / 2, position.y - size.y / 2, size.x, size.y);
+    }
+
+    public Rect GetTopDetectionRect()
+    {
+        var position = transform.position;
+        Vector2 size = GetComponent<SpriteRenderer>().bounds.size;
+        return new Rect(position.x - size.x + detectionXOffset, position.y + detectionGap, size.x * 2, topDetectionHeight);
+    }
+
+    public Rect GetBottomDetectionRect()
+    {
+        var position = transform.position;
+        Vector2 size = GetComponent<SpriteRenderer>().bounds.size;
+        return new Rect(position.x - size.x + detectionXOffset, position.y - size.y / 2 - detectionGap, size.x * 2, bottomDetectionHeight);
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(transform.position, GetComponent<SpriteRenderer>().bounds.size);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireCube(new Vector3(GetTopDetectionRect().x + GetTopDetectionRect().width / 2, GetTopDetectionRect().y + GetTopDetectionRect().height / 2, 0), new Vector3(GetTopDetectionRect().width, GetTopDetectionRect().height, 0));
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireCube(new Vector3(GetBottomDetectionRect().x + GetBottomDetectionRect().width / 2, GetBottomDetectionRect().y + GetBottomDetectionRect().height / 2, 0), new Vector3(GetBottomDetectionRect().width, GetBottomDetectionRect().height, 0));
     }
 }

@@ -16,24 +16,17 @@ using UnityEngine;
 public class BgScroller : MonoBehaviour
 {
 
-    private Vector3 startPos;
+    private Vector3 _startPos;
     [SerializeField] private float speed;
 
 
     // Start is called before the first frame update
-    void Start()
-    {
-        startPos = transform.position;
-    }
+    private void Start() => _startPos = transform.position;
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        transform.Translate(new Vector3(-1, 0, 0) * speed * Time.deltaTime);
-
-        if (transform.position.x < -10.5f)
-        {
-            transform.position = startPos;
-        }
+        transform.Translate(new Vector3(-1, 0, 0) * (speed * Time.deltaTime));
+        if (transform.position.x < -10.5f) transform.position = _startPos;
     }
 }

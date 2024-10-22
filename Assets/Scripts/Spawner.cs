@@ -1,102 +1,120 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-
-/// <summary>
-/// this script is used to manage the walls spawning
-/// at the start of the scrit we call the coroutine to spawn the walls
-/// every "time" the coroutine will create a random y value for our walls
-/// and after that it will be spawn
-/// 
-/// the CheckIncrease method is used to check if is possible increase the time value 
-/// if it is possible the IncreaseTime method will increase it
-/// </summary>
-
 
 public class Spawner : MonoBehaviour
 {
-
-    [SerializeField] GameObject wall;
-    [SerializeField] float x, minY, maxY, rndY;
-    [SerializeField] Vector2 startPos;
-
-    [SerializeField] GameManager gm;
+    [SerializeField] private GameObject wallPrefab;
+    [SerializeField] private GameManager gm;
 
     public float time;
-    bool canIncrease = true;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
-        StartCoroutine(Spawning());
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-        CheckIncrease();
-
-    }
+    private bool _canIncrease = true;
     
-    void CheckIncrease()
+    public float spawnInterval = 2f;
+    public float wallSpeed = 2f;
+    public float destroyXPosition = -10f;
+
+    private float _timer;
+    private readonly List<Wall> _walls = new();
+    
+    private void Update()
     {
-        if (gm.score == 20 && canIncrease == true)
+        CheckIncrease();
+        
+        _timer += Time.deltaTime;
+
+        if (_timer >= spawnInterval)
         {
-            canIncrease = false;
-            IncreaseTime();
+            SpawnPipe();
+            _timer = 0f;
         }
-        else if (gm.score == 40 && canIncrease == true)
+
+        MovePipes();
+    }
+
+    private void CheckIncrease()
+    {
+        switch (gm.score)
         {
-            canIncrease = false;
-            IncreaseTime();
-        }
-        else if (gm.score == 60 && canIncrease == true)
-        {
-            canIncrease = false;
-            IncreaseTime();
-        }
-        else if (gm.score == 80 && canIncrease == true)
-        {
-            canIncrease = false;
-            IncreaseTime();
-        }
-        else if (gm.score == 100 && canIncrease == true)
-        {
-            canIncrease = false;
-            IncreaseTime();
+            case 20 when _canIncrease:
+                _canIncrease = false;
+                IncreaseTime();
+                break;
+            case 40 when _canIncrease:
+                _canIncrease = false;
+                IncreaseTime();
+                break;
+            case 60 when _canIncrease:
+                _canIncrease = false;
+                IncreaseTime();
+                break;
+            case 80 when _canIncrease:
+                _canIncrease = false;
+                IncreaseTime();
+                break;
+            case 100 when _canIncrease:
+                _canIncrease = false;
+                IncreaseTime();
+                break;
         }
     }
 
-    void IncreaseTime()
+    private void IncreaseTime()
     {
         if (time >= 1.2f)
         {
             time -= 0.2f;
             StartCoroutine(ResetIncrease());
         }
-        
     }
 
-    IEnumerator ResetIncrease()
+    private IEnumerator ResetIncrease()
     {
         yield return new WaitForSeconds(2f);
-        canIncrease = true;
+        _canIncrease = true;
         StopCoroutine(ResetIncrease());
     }
 
-    IEnumerator Spawning()
+    
+    private void SpawnPipe()
     {
-        while (true)
+        var randomY = Random.Range(-2f, 2f);
+        var spawnPosition = new Vector3(10f, randomY, 0f);
+        var wallObject = Instantiate(wallPrefab, spawnPosition, Quaternion.identity, transform);
+        var wall = wallObject.GetComponent<Wall>();
+        wall.UpdateRects();
+        _walls.Add(wall);
+    }
+    
+    private void MovePipes()
+    {
+        for (var i = _walls.Count - 1; i >= 0; i--)
         {
-           
-            yield return new WaitForSeconds(time);
-            rndY = Random.Range(minY, maxY);
-            startPos = new Vector2(x, rndY);
+            var pipe = _walls[i];
+            pipe.transform.position += Vector3.left * (wallSpeed * Time.deltaTime);
+            pipe.UpdateRects();
 
-            GameObject go = Instantiate(wall, startPos, Quaternion.identity);
+            if (pipe.transform.position.x < destroyXPosition)
+            {
+                Destroy(pipe.gameObject);
+                _walls.RemoveAt(i);
+            }
         }
+    }
+
+    public bool CheckWallCollision(Rect playerRect) => 
+        _walls.Any(pipe => playerRect.Overlaps(pipe.topRect) || playerRect.Overlaps(pipe.bottomRect));
+    
+    public bool GapPassed(Rect playerRect)
+    {
+        foreach (var pipe in _walls.Where(pipe => 
+                     !pipe.hasScored && playerRect.Overlaps(pipe.middleRect)))
+        {
+            pipe.hasScored = true;
+            return true;
+        }
+
+        return false;
     }
 }

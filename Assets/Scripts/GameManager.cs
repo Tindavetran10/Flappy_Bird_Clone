@@ -1,44 +1,27 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// this script is used to manage the whole game core
-/// we manage the menu, game over, score and buttons
-/// 
-/// at the start of the scrit we set the values to false and get the best score
-/// 
-/// in the Update we manage the score text 
-/// and check if the game over is true
-/// 
-/// the methods are used to manage UI components like menu or gameover
-/// or the tutorial panel as well
-/// 
-/// in the CheckBestScore method we check if the actual score is greater then the best score
-/// if its true then the best score will be equal to the score
-/// else not
-/// anyway show the two scores to the relative UI text 
-/// </summary>
-
-
 public class GameManager : MonoBehaviour
 {
 
-    public int score = 0;
+    public int score;
     public int best;
     public bool isGameOver, isStarted;
+    private bool _hasDied;
 
-    [SerializeField] Text scoreText, gameOverScoreTxt, bestScoreTxt;
-    [SerializeField] Image medalImg;
-    [SerializeField] GameObject mainMenuPanel, tutorialPanel, gameOverPanel;
-    [SerializeField] GameObject spawner;
-    [SerializeField] GameObject player;
+    [SerializeField] private Text scoreText, gameOverScoreTxt, bestScoreTxt;
+    [SerializeField] private Image medalImg;
+    [SerializeField] private GameObject mainMenuPanel, tutorialPanel, gameOverPanel;
+    [SerializeField] private GameObject spawner;
+    [SerializeField] private Player player;
     
+    private static readonly int Close = Animator.StringToHash("close");
+
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         isGameOver = false;
         isStarted = false;
@@ -47,42 +30,55 @@ public class GameManager : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         UpdateScoreHUD();
-
+        
+        if (!_hasDied && spawner.GetComponent<Spawner>().CheckWallCollision(player.GetBounds()))
+        {
+            Debug.Log("Collision detected with the player.");
+            player.dieAudio.Play();
+            _hasDied = true;
+            GameOver();
+        }
+        
+        if (!_hasDied && spawner.GetComponent<Spawner>().GapPassed(player.GetBounds()))
+        {
+            score++;
+            player.pointAudio.Play();
+            Debug.Log("Score increased: " + score);
+        }
+        
         if (isGameOver) GameOver();
-
     }
-
-
+    
     public void OpenTutorial()
     {
-        mainMenuPanel.GetComponent<Animator>().SetTrigger("close");
+        mainMenuPanel.GetComponent<Animator>().SetTrigger(Close);
         tutorialPanel.SetActive(true);
     }
-
+    
     public void StartGame()
     {
+        isStarted = true;
         StartCoroutine(ActiveSpawner());
         scoreText.gameObject.SetActive(true);
 
-        StartCoroutine(ActivePlayer()) ;
+        StartCoroutine(ActivePlayer());
+        player.GetComponent<AIController>().EnableAI(); // Enable AI Controller
     }
 
-    public void RestartGame()
-    {
+    public void RestartGame() => 
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-    }
-    
 
-    IEnumerator ActivePlayer()
+
+    private IEnumerator ActivePlayer()
     {
         yield return new WaitForSeconds(2f);
         player.GetComponent<Player>().enabled = true;
-        player.GetComponent<Rigidbody2D>().gravityScale = 1;
     }
-    IEnumerator ActiveSpawner()
+
+    private IEnumerator ActiveSpawner()
     {
         yield return new WaitForSeconds(3f);
         spawner.SetActive(true);
@@ -93,16 +89,11 @@ public class GameManager : MonoBehaviour
     private void UpdateScoreHUD()
     {
         if (scoreText != null)
-        {
-            scoreText.text = "Score: " + score.ToString();
-        }
-        else
-        {
-            Debug.LogError("scoreText is null in UpdateScoreHUD");
-        }
+            scoreText.text = "Score: " + score;
+        else Debug.LogError("scoreText is null in UpdateScoreHUD");
     }
 
-    void GameOver()
+    private void GameOver()
     {
         Debug.Log("Game Over method is called");
     
@@ -110,9 +101,10 @@ public class GameManager : MonoBehaviour
         CheckBestScore();
         CheckMedal();
         gameOverPanel.SetActive(true);
+        player.GetComponent<AIController>().DisableAI(); // Disable AI Controller
     }
 
-    void CheckMedal()
+    private void CheckMedal()
     {
         Debug.Log("CheckMedal method is called");
     
@@ -120,7 +112,7 @@ public class GameManager : MonoBehaviour
             medalImg.gameObject.SetActive(true);
     }
 
-    void CheckBestScore()
+    private void CheckBestScore()
     {
         Debug.Log("CheckBestScore method is called");
     
