@@ -26,7 +26,7 @@ public class AIController : MonoBehaviour
             var screenMiddleY = Camera.main.orthographicSize / 2;
             var playerY = player.transform.position.y;
 
-            if (playerY < screenMiddleY - 2.5f)
+            if (playerY < screenMiddleY - 4.5f)
                 player.force = player.jumpForce;
         }
     }
@@ -42,13 +42,9 @@ public class AIController : MonoBehaviour
             if (Vector3.Distance(player.transform.position, wall.transform.position) < detectionDistance)
             {
                 if (bottomDetectionRect.Overlaps(wall.bottomRect))
-                {
                     player.force = player.jumpForce;
-                }
-                else if (topDetectionRect.Overlaps(wall.topRect))
-                {
-                    player.force = -player.jumpForce;
-                }
+                else if (topDetectionRect.Overlaps(wall.topRect)) 
+                    player.force += player.gravity * Time.deltaTime;
             }
         }
     }

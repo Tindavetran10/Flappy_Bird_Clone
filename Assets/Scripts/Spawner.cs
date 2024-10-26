@@ -9,25 +9,25 @@ public class Spawner : MonoBehaviour
     [SerializeField] private GameManager gm;
 
     public float time;
-    private bool _canIncrease = true;
+    private bool canIncrease = true;
     
     public float spawnInterval = 2f;
     public float wallSpeed = 2f;
     public float destroyXPosition = -10f;
 
-    private float _timer;
-    private readonly List<Wall> _walls = new();
+    private float timer;
+    private readonly List<Wall> walls = new();
     
     private void Update()
     {
         CheckIncrease();
         
-        _timer += Time.deltaTime;
+        timer += Time.deltaTime;
 
-        if (_timer >= spawnInterval)
+        if (timer >= spawnInterval)
         {
             SpawnPipe();
-            _timer = 0f;
+            timer = 0f;
         }
 
         MovePipes();
@@ -37,24 +37,24 @@ public class Spawner : MonoBehaviour
     {
         switch (gm.score)
         {
-            case 20 when _canIncrease:
-                _canIncrease = false;
+            case 20 when canIncrease:
+                canIncrease = false;
                 IncreaseTime();
                 break;
-            case 40 when _canIncrease:
-                _canIncrease = false;
+            case 40 when canIncrease:
+                canIncrease = false;
                 IncreaseTime();
                 break;
-            case 60 when _canIncrease:
-                _canIncrease = false;
+            case 60 when canIncrease:
+                canIncrease = false;
                 IncreaseTime();
                 break;
-            case 80 when _canIncrease:
-                _canIncrease = false;
+            case 80 when canIncrease:
+                canIncrease = false;
                 IncreaseTime();
                 break;
-            case 100 when _canIncrease:
-                _canIncrease = false;
+            case 100 when canIncrease:
+                canIncrease = false;
                 IncreaseTime();
                 break;
         }
@@ -72,7 +72,7 @@ public class Spawner : MonoBehaviour
     private IEnumerator ResetIncrease()
     {
         yield return new WaitForSeconds(2f);
-        _canIncrease = true;
+        canIncrease = true;
         StopCoroutine(ResetIncrease());
     }
 
@@ -84,31 +84,31 @@ public class Spawner : MonoBehaviour
         var wallObject = Instantiate(wallPrefab, spawnPosition, Quaternion.identity, transform);
         var wall = wallObject.GetComponent<Wall>();
         wall.UpdateRects();
-        _walls.Add(wall);
+        walls.Add(wall);
     }
     
     private void MovePipes()
     {
-        for (var i = _walls.Count - 1; i >= 0; i--)
+        for (var i = walls.Count - 1; i >= 0; i--)
         {
-            var pipe = _walls[i];
+            var pipe = walls[i];
             pipe.transform.position += Vector3.left * (wallSpeed * Time.deltaTime);
             pipe.UpdateRects();
 
             if (pipe.transform.position.x < destroyXPosition)
             {
                 Destroy(pipe.gameObject);
-                _walls.RemoveAt(i);
+                walls.RemoveAt(i);
             }
         }
     }
 
     public bool CheckWallCollision(Rect playerRect) => 
-        _walls.Any(pipe => playerRect.Overlaps(pipe.topRect) || playerRect.Overlaps(pipe.bottomRect));
+        walls.Any(pipe => playerRect.Overlaps(pipe.topRect) || playerRect.Overlaps(pipe.bottomRect));
     
     public bool GapPassed(Rect playerRect)
     {
-        foreach (var pipe in _walls.Where(pipe => 
+        foreach (var pipe in walls.Where(pipe => 
                      !pipe.hasScored && playerRect.Overlaps(pipe.middleRect)))
         {
             pipe.hasScored = true;

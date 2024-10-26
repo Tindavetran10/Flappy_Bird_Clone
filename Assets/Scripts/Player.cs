@@ -18,7 +18,7 @@ public class Player : MonoBehaviour
     public float height = 0.5f;
 
     [SerializeField] private float detectionGap = 0.1f;
-    [SerializeField] private float detectionXOffset = 0.0f;
+    [SerializeField] private float detectionXOffset;
     [SerializeField] private float topDetectionHeight = 0.5f; // Height of the top detection rect
     [SerializeField] private float bottomDetectionHeight = 0.5f; // Height of the bottom detection rect
 
@@ -44,10 +44,10 @@ public class Player : MonoBehaviour
 
     private void Jump()
     {
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Mathf.Approximately(force, jumpForce))
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space))
         {
             flyAudio.Play();
-            force = jumpForce;
+            force = jumpForce * Time.deltaTime;
         }
     }
     
